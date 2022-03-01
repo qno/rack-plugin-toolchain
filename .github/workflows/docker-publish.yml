@@ -42,7 +42,7 @@ jobs:
         
   build:
     needs: generate-sdk
-    runs-on: ubun  tu-latest
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write

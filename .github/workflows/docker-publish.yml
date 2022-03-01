@@ -18,12 +18,31 @@ env:
   REGISTRY: ghcr.io
   # github.repository as <account>/<repo>
   IMAGE_NAME: ${{ github.repository }}
-
+  rack-sdk-version: 2.1.0
+  macos-sdk-version: 11.1
 
 jobs:
-  build:
 
-    runs-on: ubuntu-latest
+  generate-sdk:
+    name: generate MacOS SDK
+    runs-on:  macos-10.15
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v2
+      id: macos-sdk-cache
+      with:
+        path: MacOSX${{ env.macos-sdk-version }}.sdk.tar.xz
+        key: MacOSX${{ env.macos-sdk-version }}.sdk.tar.xz
+        
+    - name: Extract SDKs
+      if: steps.macos-sdk-cache.outputs.cache-hit != 'true'
+      run: |
+        git clone https://github.com/tpoechtrager/osxcross.git
+        ./osxcross/tools/gen_sdk_package_tools.sh
+        
+  build:
+    needs: generate-sdk
+    runs-on: ubun  tu-latest
     permissions:
       contents: read
       packages: write
@@ -32,8 +51,12 @@ jobs:
       id-token: write
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v2
+    
+      - uses: actions/cache@v2
+        with:
+          path: MacOSX${{ env.macos-sdk-version }}.sdk.tar.xz
+          key: MacOSX${{ env.macos-sdk-version }}.sdk.tar.xz
 
       # Install the cosign tool except on PR
       # https://github.com/sigstore/cosign-installer

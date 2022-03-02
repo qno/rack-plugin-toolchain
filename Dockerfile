@@ -25,16 +25,16 @@ RUN make dep-ubuntu
 RUN rm -rf /var/lib/apt/lists/*
 
 USER build
-COPY MacOSX11.1.sdk.tar.* /home/build/rack-plugin-toolchain/
+#COPY MacOSX11.1.sdk.tar.* /home/build/rack-plugin-toolchain/
 
 # Build toolchains
-RUN JOBS=$JOBS make toolchain-mac
+#RUN JOBS=$JOBS make toolchain-mac
 RUN JOBS=$JOBS make toolchain-win
 RUN JOBS=$JOBS make toolchain-lin
 
 # Install Rack SDK
-RUN make -j $JOBS rack-sdk-mac
+#RUN make -j $JOBS rack-sdk-mac
 RUN make -j $JOBS rack-sdk-win
 RUN make -j $JOBS rack-sdk-lin
 
-RUN rm MacOSX11.1.sdk.tar.*
+#RUN rm MacOSX11.1.sdk.tar.*

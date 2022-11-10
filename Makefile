@@ -17,7 +17,7 @@ export JOBS_CT_NG :=
 endif
 
 RACK_SDK_VERSION := 2.1.2
-DOCKER_IMAGE_VERSION := 3
+DOCKER_IMAGE_VERSION := 5
 
 all: toolchain-all
 
@@ -27,7 +27,8 @@ all: toolchain-all
 crosstool-ng := $(LOCAL_DIR)/bin/ct-ng
 $(crosstool-ng):
 	git clone https://github.com/crosstool-ng/crosstool-ng.git
-	cd crosstool-ng && git checkout 02d1503f6769be4ad8058b393d4245febced459f
+	# Use development version to avoid zlib issue until proper release is available
+	cd crosstool-ng && git checkout 82346dd7dfe7ed20dc8ec71e193c2d3b1930e22d
 	cd crosstool-ng && ./bootstrap
 	cd crosstool-ng && ./configure --prefix="$(LOCAL_DIR)"
 	cd crosstool-ng && make -j $(JOBS)
@@ -38,9 +39,6 @@ $(crosstool-ng):
 toolchain-lin := $(LOCAL_DIR)/x86_64-ubuntu16.04-linux-gnu
 toolchain-lin: $(toolchain-lin)
 $(toolchain-lin): $(crosstool-ng)
-	# HACK until crosstool-ng has fixed its mirror for isl library
-	mkdir -p .build/tarballs
-	cd .build/tarballs && wget http://deb.debian.org/debian/pool/main/i/isl/isl_0.24.orig.tar.xz && mv isl_0.24.orig.tar.xz isl-0.24.tar.xz
 	ct-ng x86_64-ubuntu16.04-linux-gnu
 	CT_PREFIX="$(LOCAL_DIR)" ct-ng build$(JOBS_CT_NG)
 	rm -rf .build .config build.log
@@ -53,9 +51,6 @@ $(toolchain-lin): $(crosstool-ng)
 toolchain-win := $(LOCAL_DIR)/x86_64-w64-mingw32
 toolchain-win: $(toolchain-win)
 $(toolchain-win): $(crosstool-ng)
-	# HACK until crosstool-ng has fixed its mirror for isl library
-	mkdir -p .build/tarballs
-	cd .build/tarballs && wget http://deb.debian.org/debian/pool/main/i/isl/isl_0.24.orig.tar.xz && mv isl_0.24.orig.tar.xz isl-0.24.tar.xz
 	ct-ng x86_64-w64-mingw32
 	CT_PREFIX="$(LOCAL_DIR)" ct-ng build$(JOBS_CT_NG)
 	rm -rf .build .config build.log /home/build/src
@@ -69,8 +64,11 @@ MAC_BINUTILS_VERSION := 2.37
 $(toolchain-mac): export PATH := $(LOCAL_DIR)/osxcross/bin:$(PATH)
 $(toolchain-mac):
 	# Download osxcross
-	git clone "https://github.com/tpoechtrager/osxcross.git" osxcross
-	cd osxcross && git checkout 0f87f567dfaf98460244471ad6c0f4311d62079c
+	#git clone "https://github.com/tpoechtrager/osxcross.git" osxcross
+	#cd osxcross && git checkout 0f87f567dfaf98460244471ad6c0f4311d62079c
+	# FIXME Switch to my own branch for now until clang build fix is merged into osxcross
+	git clone "https://github.com/cschol/osxcross.git" osxcross
+	cd osxcross && git checkout 70181533b0af841336feb7f74ca1e3a7a81c9065
 
 	# Build clang
 	cd osxcross && UNATTENDED=1 DISABLE_BOOTSTRAP=1 INSTALLPREFIX="$(LOCAL_DIR)" CLANG_VERSION=$(MAC_CLANG_VERSION) OCDEBUG=1 JOBS=$(JOBS) ./build_clang.sh
@@ -115,7 +113,7 @@ $(rack-sdk-lin):
 RACK_DIR_LIN := $(PWD)/$(rack-sdk-lin)
 
 rack-sdk-clean:
-	rm -rf $(PWD)/Rack-SDK-mac $(PWD)/Rack-SDK-win $(PWD)/Rack-SDK-lin
+	rm -rf Rack-SDK-mac Rack-SDK-win Rack-SDK-lin
 
 rack-sdk-all: rack-sdk-mac rack-sdk-win rack-sdk-lin
 

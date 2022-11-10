@@ -31,9 +31,9 @@ jobs:
 
       - name: Disable MacOS Toolchain
         run: |
-          sed 's/COPY MacOSX11.1.sdk.tar/#COPY MacOSX11.1.sdk.tar/g' Dockerfile
-          sed 's/RUN JOBS=$JOBS make toolchain-mac/#RUN JOBS=$JOBS make toolchain-mac/g' Dockerfile
-          sed 's/RUN rm MacOSX11.1.sdk.tar/#RUN rm MacOSX11.1.sdk.tar/g' Dockerfile
+          sed -i 's/COPY MacOSX11.1.sdk.tar/#COPY MacOSX11.1.sdk.tar/g' Dockerfile
+          sed -i 's/RUN JOBS=$JOBS make toolchain-mac/#RUN JOBS=$JOBS make toolchain-mac/g' Dockerfile
+          sed -i 's/RUN rm MacOSX11.1.sdk.tar/#RUN rm MacOSX11.1.sdk.tar/g' Dockerfile
 
       - name: Install cosign
         if: github.event_name != 'pull_request'

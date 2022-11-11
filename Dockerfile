@@ -32,6 +32,4 @@ RUN JOBS=$JOBS make toolchain-mac
 RUN JOBS=$JOBS make toolchain-win
 RUN JOBS=$JOBS make toolchain-lin
 
-RUN make rack-sdk-all
-
 RUN rm MacOSX11.1.sdk.tar.*

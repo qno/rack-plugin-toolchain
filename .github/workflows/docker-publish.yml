@@ -2,11 +2,11 @@ name: Build Windows and Linux Toolchain Image
 
 on:
   push:
-    branches: [ v2 ]
+    branches: [v2]
     # Publish semver tags as releases.
-    tags: [ 'v*.*.*' ]
+    tags: ['v*.*.*']
   pull_request:
-    branches: [ v2 ]
+    branches: [v2]
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -29,15 +29,9 @@ jobs:
         run: |
           echo "RACK_DOCKER_IMAGE_VERSION=$(/bin/egrep -i '^DOCKER_IMAGE_VERSION.*:=' Makefile | tr -cd '[:digit:]')" >> $GITHUB_ENV
 
-      - name: Disable MacOS Toolchain
+      - name: Extract Rack SDK version
         run: |
-          sed -i 's/COPY MacOSX11.1.sdk.tar/#COPY MacOSX11.1.sdk.tar/g' Dockerfile
-          sed -i 's/RUN JOBS=$JOBS make toolchain-mac/#RUN JOBS=$JOBS make toolchain-mac/g' Dockerfile
-          sed -i 's/RUN rm MacOSX11.1.sdk.tar/#RUN rm MacOSX11.1.sdk.tar/g' Dockerfile
-
-      - name: Enable Rack SDK download in Dockerfile
-        run: |
-          sed -i 's/RUN JOBS=$JOBS make toolchain-lin/RUN JOBS=$JOBS make toolchain-lin\nRUN make rack-sdk-all/g' Dockerfile
+          echo "RACK_SDK_VERSION=$(/bin/egrep -i '^RACK_SDK_VERSION.*:=' Makefile | cut -d ' ' -f 3)" >> $GITHUB_ENV
 
       - name: Install cosign
         if: github.event_name != 'pull_request'
@@ -62,6 +56,7 @@ jobs:
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=raw,value=${{ env.RACK_DOCKER_IMAGE_VERSION }}
+            type=raw,value=rack-sdk-${{ env.RACK_SDK_VERSION }}
             type=sha
 
       - name: Build and push Docker image

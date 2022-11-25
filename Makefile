@@ -16,7 +16,7 @@ export JOBS :=
 export JOBS_CT_NG :=
 endif
 
-RACK_SDK_VERSION := 2.1.2
+RACK_SDK_VERSION := 2.2.0
 DOCKER_IMAGE_VERSION := 5
 
 all: toolchain-all

@@ -85,35 +85,35 @@ $(toolchain-mac):
 	rm -rf osxcross
 
 
-rack-sdk-mac := Rack-SDK-mac
+rack-sdk-mac := Rack-SDK-mac-x64
 rack-sdk-mac: $(rack-sdk-mac)
 $(rack-sdk-mac):
-	wget -c "https://vcvrack.com/downloads/Rack-SDK-$(RACK_SDK_VERSION)-mac.zip"
-	unzip Rack-SDK-$(RACK_SDK_VERSION)-mac.zip
-	mv Rack-SDK Rack-SDK-mac
-	rm Rack-SDK-$(RACK_SDK_VERSION)-mac.zip
+	wget -c "https://vcvrack.com/downloads/Rack-SDK-$(RACK_SDK_VERSION)-mac-x64.zip"
+	unzip Rack-SDK-$(RACK_SDK_VERSION)-mac-x64.zip
+	mv Rack-SDK Rack-SDK-mac-x64
+	rm Rack-SDK-$(RACK_SDK_VERSION)-mac-x64.zip
 RACK_DIR_MAC := $(PWD)/$(rack-sdk-mac)
 
-rack-sdk-win := Rack-SDK-win
+rack-sdk-win := Rack-SDK-win-x64
 rack-sdk-win: $(rack-sdk-win)
 $(rack-sdk-win):
-	wget -c "https://vcvrack.com/downloads/Rack-SDK-$(RACK_SDK_VERSION)-win.zip"
-	unzip Rack-SDK-$(RACK_SDK_VERSION)-win.zip
-	mv Rack-SDK Rack-SDK-win
-	rm Rack-SDK-$(RACK_SDK_VERSION)-win.zip
+	wget -c "https://vcvrack.com/downloads/Rack-SDK-$(RACK_SDK_VERSION)-win-x64.zip"
+	unzip Rack-SDK-$(RACK_SDK_VERSION)-win-x64.zip
+	mv Rack-SDK Rack-SDK-win-x64
+	rm Rack-SDK-$(RACK_SDK_VERSION)-win-x64.zip
 RACK_DIR_WIN := $(PWD)/$(rack-sdk-win)
 
-rack-sdk-lin := Rack-SDK-lin
+rack-sdk-lin := Rack-SDK-lin-x64
 rack-sdk-lin: $(rack-sdk-lin)
 $(rack-sdk-lin):
-	wget -c "https://vcvrack.com/downloads/Rack-SDK-$(RACK_SDK_VERSION)-lin.zip"
-	unzip Rack-SDK-$(RACK_SDK_VERSION)-lin.zip
-	mv Rack-SDK Rack-SDK-lin
-	rm Rack-SDK-$(RACK_SDK_VERSION)-lin.zip
+	wget -c "https://vcvrack.com/downloads/Rack-SDK-$(RACK_SDK_VERSION)-lin-x64.zip"
+	unzip Rack-SDK-$(RACK_SDK_VERSION)-lin-x64.zip
+	mv Rack-SDK Rack-SDK-lin-x64
+	rm Rack-SDK-$(RACK_SDK_VERSION)-lin-x64.zip
 RACK_DIR_LIN := $(PWD)/$(rack-sdk-lin)
 
 rack-sdk-clean:
-	rm -rf Rack-SDK-mac Rack-SDK-win Rack-SDK-lin
+	rm -rf Rack-SDK-mac-x64 Rack-SDK-win-x64 Rack-SDK-lin-x64
 
 rack-sdk-all: rack-sdk-mac rack-sdk-win rack-sdk-lin
 

@@ -1,7 +1,8 @@
 FROM ghcr.io/qno/rack-plugin-toolchain-ctng-windows:x86_64-w64-mingw32 as ctng-windows
 FROM ghcr.io/qno/rack-plugin-toolchain-ctng-linux:x86_64-ubuntu16.04 as ctng-linux
 
-FROM ubuntu:20.04
+FROM ubuntu:22.04
+
 ENV LANG C.UTF-8
 
 ARG JOBS

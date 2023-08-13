@@ -16,19 +16,23 @@ export JOBS :=
 export JOBS_CT_NG :=
 endif
 
-RACK_SDK_VERSION := 2.3.0
-DOCKER_IMAGE_VERSION := 10
+RACK_SDK_VERSION := 2.4.0
+DOCKER_IMAGE_VERSION := 11
 
-all: toolchain-all
+
+all: toolchain-all rack-sdk-all
+
 
 # Toolchain build
+
+
+toolchain-all: toolchain-lin toolchain-win toolchain-mac
 
 
 crosstool-ng := $(LOCAL_DIR)/bin/ct-ng
 $(crosstool-ng):
 	git clone https://github.com/crosstool-ng/crosstool-ng.git
-	# Use development version to avoid zlib issue until proper release is available
-	cd crosstool-ng && git checkout 82346dd7dfe7ed20dc8ec71e193c2d3b1930e22d
+	cd crosstool-ng && git checkout e63c40854c977f488bee159a8f8ebf5fc06c8666
 	cd crosstool-ng && ./bootstrap
 	cd crosstool-ng && ./configure --prefix="$(LOCAL_DIR)"
 	cd crosstool-ng && make -j $(JOBS)
@@ -58,33 +62,60 @@ $(toolchain-win): $(crosstool-ng)
 	rm -rf .build .config build.log /home/build/src
 
 
+OSXCROSS_CLANG_VERSION := 15.0.7
+OSXCROSS_BINUTILS_VERSION := 2.37
+
 toolchain-mac := $(LOCAL_DIR)/osxcross
 toolchain-mac: $(toolchain-mac)
-MAC_CLANG_VERSION := 12.0.1
-MAC_BINUTILS_VERSION := 2.37
-# Binaries from ./build.sh must be available in order to run ./build_binutils.sh
 $(toolchain-mac): export PATH := $(LOCAL_DIR)/osxcross/bin:$(PATH)
 $(toolchain-mac):
-	# Download osxcross
+	# Obtain osxcross sources.
+	# FIXME Use official osxcross version when workaround from our fork are not required anymore.
 	git clone "https://github.com/cschol/osxcross.git" osxcross
-	cd osxcross && git checkout 12f179126df156fb65515cccf140f4b634967baa
+	cd osxcross && git checkout ae54314c24a959cd90ebb1f3aff3507677d36591
 
-	# Build clang
-	cd osxcross && UNATTENDED=1 DISABLE_BOOTSTRAP=1 INSTALLPREFIX="$(LOCAL_DIR)" CLANG_VERSION=$(MAC_CLANG_VERSION) OCDEBUG=1 JOBS=$(JOBS) ./build_clang.sh
-	cd osxcross/build/build_stage && make install -j $(JOBS)
+	# Build a custom clang compiler using the system's gcc compiler.
+	# This enables us to have custom compiler environment needed for cross-compilation.
+	cd osxcross && UNATTENDED=1 INSTALLPREFIX="$(LOCAL_DIR)" GITPROJECT=llvm CLANG_VERSION=$(OSXCROSS_CLANG_VERSION) OCDEBUG=1 ENABLE_CLANG_INSTALL=1 JOBS=$(JOBS) ./build_clang.sh
 
-	# Build osxcross
+	## Build osxcross.
 	cp MacOSX11.1.sdk.tar.* osxcross/tarballs/
 	cd osxcross && PATH="$(LOCAL_DIR)/bin:$(PATH)" UNATTENDED=1 TARGET_DIR="$(LOCAL_DIR)/osxcross" JOBS=$(JOBS) ./build.sh
 
-	# Build compiler-rt
+	## Build compiler-rt.
 	cd osxcross && ENABLE_COMPILER_RT_INSTALL=1 JOBS=$(JOBS) ./build_compiler_rt.sh
 
-	# Build Mac version of binutils and build LLVM gold
-	cd osxcross && BINUTILS_VERSION=$(MAC_BINUTILS_VERSION) TARGET_DIR="$(LOCAL_DIR)/osxcross" JOBS=$(JOBS) ./build_binutils.sh
-	cd osxcross/build/build_stage && cmake . -DLLVM_BINUTILS_INCDIR=$(PWD)/osxcross/build/binutils-$(MAC_BINUTILS_VERSION)/include && make install -j $(JOBS)
+	## Build MacOS binutils and build LLVM gold.
+	cd osxcross && BINUTILS_VERSION=$(OSXCROSS_BINUTILS_VERSION) TARGET_DIR="$(LOCAL_DIR)/osxcross" JOBS=$(JOBS) ./build_binutils.sh
+	cd osxcross/build/build_stage && cmake . -DLLVM_BINUTILS_INCDIR=$(PWD)/osxcross/build/binutils-$(OSXCROSS_BINUTILS_VERSION)/include && make install -j $(JOBS)
+
+	# Fix library paths (for Arch Linux and Ubuntu arm64).
+	export PLATFORM_ID=$$($(LOCAL_DIR)/bin/clang -dumpmachine) ; \
+	echo "Platform ID: $$PLATFORM_ID" ; \
+	if [ ! -z "$$PLATFORM_ID" ] && [ -e "$(LOCAL_DIR)/lib/$$PLATFORM_ID/"  ]; then \
+		echo "Copying lib files..." ; \
+		cp -Pv $(LOCAL_DIR)/lib/$$PLATFORM_ID/* $(LOCAL_DIR)/lib/ ; \
+		echo "done" ; \
+	fi
+
+	## Download rcodesign binary to ad-hoc sign arm64 plugin builds in a cross-compilation environment.
+	wget --continue "https://github.com/indygreg/apple-platform-rs/releases/download/apple-codesign%2F0.22.0/apple-codesign-0.22.0-x86_64-unknown-linux-musl.tar.gz"
+	tar -xvf apple-codesign-0.22.0-x86_64-unknown-linux-musl.tar.gz
+	rm apple-codesign-0.22.0-x86_64-unknown-linux-musl.tar.gz
+	cp ./apple-codesign-0.22.0-x86_64-unknown-linux-musl/rcodesign $(LOCAL_DIR)/osxcross/bin/
+	rm -r apple-codesign-0.22.0-x86_64-unknown-linux-musl
 
 	rm -rf osxcross
+
+
+toolchain-clean:
+	rm -rf local osxcross .build build.log .config
+
+
+# Rack SDK
+
+
+rack-sdk-all: rack-sdk-mac-x64 rack-sdk-mac-arm64 rack-sdk-win-x64 rack-sdk-lin-x64
 
 
 rack-sdk-mac-x64 := Rack-SDK-mac-x64
@@ -96,6 +127,7 @@ $(rack-sdk-mac-x64):
 	rm Rack-SDK-$(RACK_SDK_VERSION)-mac-x64.zip
 RACK_DIR_MAC_X64 := $(PWD)/$(rack-sdk-mac-x64)
 
+
 rack-sdk-mac-arm64 := Rack-SDK-mac-arm64
 rack-sdk-mac-arm64: $(rack-sdk-mac-arm64)
 $(rack-sdk-mac-arm64):
@@ -104,6 +136,7 @@ $(rack-sdk-mac-arm64):
 	mv Rack-SDK Rack-SDK-mac-arm64
 	rm Rack-SDK-$(RACK_SDK_VERSION)-mac-arm64.zip
 RACK_DIR_MAC_ARM64 := $(PWD)/$(rack-sdk-mac-arm64)
+
 
 rack-sdk-win-x64 := Rack-SDK-win-x64
 rack-sdk-win-x64: $(rack-sdk-win-x64)
@@ -114,6 +147,7 @@ $(rack-sdk-win-x64):
 	rm Rack-SDK-$(RACK_SDK_VERSION)-win-x64.zip
 RACK_DIR_WIN_X64 := $(PWD)/$(rack-sdk-win-x64)
 
+
 rack-sdk-lin-x64 := Rack-SDK-lin-x64
 rack-sdk-lin-x64: $(rack-sdk-lin-x64)
 $(rack-sdk-lin-x64):
@@ -123,16 +157,9 @@ $(rack-sdk-lin-x64):
 	rm Rack-SDK-$(RACK_SDK_VERSION)-lin-x64.zip
 RACK_DIR_LIN_X64 := $(PWD)/$(rack-sdk-lin-x64)
 
+
 rack-sdk-clean:
 	rm -rf $(rack-sdk-mac-x64) $(rack-sdk-mac-arm64) $(rack-sdk-win-x64) $(rack-sdk-lin-x64)
-
-rack-sdk-all: rack-sdk-mac-x64 rack-sdk-mac-arm64 rack-sdk-win-x64 rack-sdk-lin-x64
-
-toolchain-all: toolchain-lin toolchain-win toolchain-mac rack-sdk-all
-
-
-toolchain-clean:
-	rm -rf .build local osxcross $(rack-sdk-mac-x64) $(rack-sdk-win-x64) $(rack-sdk-lin-x64) $(rack-sdk-mac-arm64)
 
 
 # Plugin build
@@ -140,6 +167,13 @@ toolchain-clean:
 
 PLUGIN_BUILD_DIR := plugin-build
 PLUGIN_DIR ?=
+
+
+plugin-build:
+	$(MAKE) plugin-build-mac-x64
+	$(MAKE) plugin-build-mac-arm64
+	$(MAKE) plugin-build-win-x64
+	$(MAKE) plugin-build-lin-x64
 
 
 plugin-build-mac-x64: export PATH := $(LOCAL_DIR)/osxcross/bin:$(PATH)
@@ -156,6 +190,7 @@ plugin-build-mac-arm64: export CXX := arm64-apple-darwin20.2-clang++-libc++
 plugin-build-mac-arm64: export STRIP := arm64-apple-darwin20.2-strip
 plugin-build-mac-arm64: export INSTALL_NAME_TOOL := arm64-apple-darwin20.2-install_name_tool
 plugin-build-mac-arm64: export OTOOL := arm64-apple-darwin20.2-otool
+plugin-build-mac-arm64: export CODESIGN := rcodesign sign
 
 
 plugin-build-win-x64: export PATH := $(LOCAL_DIR)/x86_64-w64-mingw32/bin:$(PATH)
@@ -184,13 +219,6 @@ plugin-build-mac-x64 plugin-build-mac-arm64 plugin-build-win-x64 plugin-build-li
 	mkdir -p $(PLUGIN_BUILD_DIR)
 	cp $(PLUGIN_DIR)/dist/*.vcvplugin $(PLUGIN_BUILD_DIR)/
 	cd $(PLUGIN_DIR) && $(MAKE) clean
-
-
-plugin-build:
-	$(MAKE) plugin-build-mac-x64
-	$(MAKE) plugin-build-mac-arm64
-	$(MAKE) plugin-build-win-x64
-	$(MAKE) plugin-build-lin-x64
 
 
 plugin-build-clean:
@@ -241,14 +269,32 @@ dep-ubuntu:
 
 
 dep-arch-linux:
-	# TODO Complete this list
-	sudo pacman -S --needed \
+	pacman -Suyy --noconfirm && pacman -S --noconfirm --needed \
+		gcc \
+		git \
+		cmake \
+		patch \
+		python3 \
+		automake \
+		help2man \
+		texinfo \
+		libtool \
+		jq \
+		rsync \
+		autoconf \
+		flex \
+		bison \
+		which \
+		unzip \
 		wget \
-		help2man
+		glu \
+		libx11 \
+		mesa
+
 
 
 docker-build: rack-sdk-all
-	docker build --build-arg JOBS=$(JOBS) --tag rack-plugin-toolchain:$(DOCKER_IMAGE_VERSION) .
+	docker build --build-arg JOBS=$(JOBS) --no-cache --tag rack-plugin-toolchain:$(DOCKER_IMAGE_VERSION) . --progress=plain 2>&1 | tee docker-build.log
 
 
 DOCKER_RUN := docker run --rm --interactive --tty \
@@ -265,6 +311,10 @@ DOCKER_RUN := docker run --rm --interactive --tty \
 docker-run:
 	$(DOCKER_RUN)
 
+docker-plugin-build:
+	mkdir -p $(PLUGIN_BUILD_DIR)
+	$(DOCKER_RUN) -c "$(MAKE) plugin-build $(MFLAGS)"
+
 docker-plugin-build-mac-x64:
 	mkdir -p $(PLUGIN_BUILD_DIR)
 	$(DOCKER_RUN) -c "$(MAKE) plugin-build-mac-x64 $(MFLAGS)"
@@ -280,10 +330,6 @@ docker-plugin-build-win-x64:
 docker-plugin-build-lin-x64:
 	mkdir -p $(PLUGIN_BUILD_DIR)
 	$(DOCKER_RUN) -c "$(MAKE) plugin-build-lin-x64 $(MFLAGS)"
-
-docker-plugin-build:
-	mkdir -p $(PLUGIN_BUILD_DIR)
-	$(DOCKER_RUN) -c "$(MAKE) plugin-build $(MFLAGS)"
 
 
 .NOTPARALLEL:

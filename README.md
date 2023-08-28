@@ -1,6 +1,6 @@
-# VCV Rack plugin build toolchains
+# VCV Rack Plugin Toolchain
 
-**Cross-compile** Rack plugins for Apple macOS, Microsoft Windows, and GNU/Linux with a single command on any Linux distro.
+**Cross-compile** VCV Rack plugins for Mac, Windows, and Linux with a single command on any Linux distro.
 
 ## Building
 
@@ -67,6 +67,11 @@ Build your plugin.
 make -j8 docker-plugin-build PLUGIN_DIR=...
 ```
 You may replace 8 with your desired number of parallel jobs, such as your number of logical cores.
+
+**NOTE for macOS platform**: You may have to add `MAKE=make` to the build command on macOS.
+```bash
+MAKE=make make -j8 docker-plugin-build PLUGIN_DIR=...
+```
 
 Built plugin packages are placed in the `plugin-build/` directory.
 

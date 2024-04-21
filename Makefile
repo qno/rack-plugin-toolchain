@@ -20,7 +20,7 @@ WGET := wget --continue
 UNTAR := tar -x -f
 UNZIP := unzip
 
-RACK_SDK_VERSION := 2.4.1
+RACK_SDK_VERSION := 2.5.1
 DOCKER_IMAGE_VERSION := 14
 
 

@@ -16,8 +16,12 @@ export JOBS :=
 export JOBS_CT_NG :=
 endif
 
-RACK_SDK_VERSION := 2.4.1
-DOCKER_IMAGE_VERSION := 13
+WGET := wget --continue
+UNTAR := tar -x -f
+UNZIP := unzip
+
+RACK_SDK_VERSION := 2.5.2
+DOCKER_IMAGE_VERSION := 14
 
 
 all: toolchain-all rack-sdk-all
@@ -26,7 +30,7 @@ all: toolchain-all rack-sdk-all
 # Toolchain build
 
 
-toolchain-all: toolchain-lin toolchain-win toolchain-mac
+toolchain-all: toolchain-lin toolchain-win toolchain-mac cppcheck
 
 
 crosstool-ng := $(LOCAL_DIR)/bin/ct-ng
@@ -99,13 +103,31 @@ $(toolchain-mac):
 	fi
 
 	## Download rcodesign binary to ad-hoc sign arm64 plugin builds in a cross-compilation environment.
-	wget --continue "https://github.com/indygreg/apple-platform-rs/releases/download/apple-codesign%2F0.22.0/apple-codesign-0.22.0-x86_64-unknown-linux-musl.tar.gz"
-	tar -xvf apple-codesign-0.22.0-x86_64-unknown-linux-musl.tar.gz
+	$(WGET) "https://github.com/indygreg/apple-platform-rs/releases/download/apple-codesign%2F0.22.0/apple-codesign-0.22.0-x86_64-unknown-linux-musl.tar.gz"
+	$(UNTAR) apple-codesign-0.22.0-x86_64-unknown-linux-musl.tar.gz
 	rm apple-codesign-0.22.0-x86_64-unknown-linux-musl.tar.gz
 	cp ./apple-codesign-0.22.0-x86_64-unknown-linux-musl/rcodesign $(LOCAL_DIR)/osxcross/bin/
 	rm -r apple-codesign-0.22.0-x86_64-unknown-linux-musl
 
 	rm -rf osxcross
+
+
+CPPCHECK_VERSION := 2.13.0
+cppcheck := $(LOCAL_DIR)/cppcheck/bin/cppcheck
+cppcheck: $(cppcheck)
+$(cppcheck):
+	$(WGET) "https://github.com/danmar/cppcheck/archive/refs/tags/$(CPPCHECK_VERSION).tar.gz"
+	$(UNTAR) $(CPPCHECK_VERSION).tar.gz
+	cd cppcheck-$(CPPCHECK_VERSION) && mkdir build
+	cd cppcheck-$(CPPCHECK_VERSION)/build \
+		&& cmake .. \
+		-DUSE_MATCHCOMPILER=ON \
+		-DUSE_THREADS=ON \
+		-DCMAKE_INSTALL_PREFIX=$(LOCAL_DIR)/cppcheck \
+		&& cmake --build . -j \
+		&& cmake --install .
+	rm $(CPPCHECK_VERSION).tar.gz
+	rm -rf cppcheck-$(CPPCHECK_VERSION)
 
 
 toolchain-clean:
@@ -121,28 +143,28 @@ rack-sdk-all: rack-sdk-mac-x64 rack-sdk-mac-arm64 rack-sdk-win-x64 rack-sdk-lin-
 rack-sdk-mac-x64 := Rack-SDK-mac-x64
 rack-sdk-mac-x64: $(rack-sdk-mac-x64)
 $(rack-sdk-mac-x64):
-	wget -c "https://vcvrack.com/downloads/Rack-SDK-$(RACK_SDK_VERSION)-mac-x64.zip"
-	unzip Rack-SDK-$(RACK_SDK_VERSION)-mac-x64.zip
+	$(WGET) "https://vcvrack.com/downloads/Rack-SDK-$(RACK_SDK_VERSION)-mac-x64+arm64.zip"
+	$(UNZIP) Rack-SDK-$(RACK_SDK_VERSION)-mac-x64+arm64.zip
 	mv Rack-SDK Rack-SDK-mac-x64
-	rm Rack-SDK-$(RACK_SDK_VERSION)-mac-x64.zip
+	rm Rack-SDK-$(RACK_SDK_VERSION)-mac-x64+arm64.zip
 RACK_DIR_MAC_X64 := $(PWD)/$(rack-sdk-mac-x64)
 
 
 rack-sdk-mac-arm64 := Rack-SDK-mac-arm64
 rack-sdk-mac-arm64: $(rack-sdk-mac-arm64)
 $(rack-sdk-mac-arm64):
-	wget -c "https://vcvrack.com/downloads/Rack-SDK-$(RACK_SDK_VERSION)-mac-arm64.zip"
-	unzip Rack-SDK-$(RACK_SDK_VERSION)-mac-arm64.zip
+	$(WGET) "https://vcvrack.com/downloads/Rack-SDK-$(RACK_SDK_VERSION)-mac-x64+arm64.zip"
+	$(UNZIP) Rack-SDK-$(RACK_SDK_VERSION)-mac-x64+arm64.zip
 	mv Rack-SDK Rack-SDK-mac-arm64
-	rm Rack-SDK-$(RACK_SDK_VERSION)-mac-arm64.zip
+	rm Rack-SDK-$(RACK_SDK_VERSION)-mac-x64+arm64.zip
 RACK_DIR_MAC_ARM64 := $(PWD)/$(rack-sdk-mac-arm64)
 
 
 rack-sdk-win-x64 := Rack-SDK-win-x64
 rack-sdk-win-x64: $(rack-sdk-win-x64)
 $(rack-sdk-win-x64):
-	wget -c "https://vcvrack.com/downloads/Rack-SDK-$(RACK_SDK_VERSION)-win-x64.zip"
-	unzip Rack-SDK-$(RACK_SDK_VERSION)-win-x64.zip
+	$(WGET) "https://vcvrack.com/downloads/Rack-SDK-$(RACK_SDK_VERSION)-win-x64.zip"
+	$(UNZIP) Rack-SDK-$(RACK_SDK_VERSION)-win-x64.zip
 	mv Rack-SDK Rack-SDK-win-x64
 	rm Rack-SDK-$(RACK_SDK_VERSION)-win-x64.zip
 RACK_DIR_WIN_X64 := $(PWD)/$(rack-sdk-win-x64)
@@ -151,8 +173,8 @@ RACK_DIR_WIN_X64 := $(PWD)/$(rack-sdk-win-x64)
 rack-sdk-lin-x64 := Rack-SDK-lin-x64
 rack-sdk-lin-x64: $(rack-sdk-lin-x64)
 $(rack-sdk-lin-x64):
-	wget -c "https://vcvrack.com/downloads/Rack-SDK-$(RACK_SDK_VERSION)-lin-x64.zip"
-	unzip Rack-SDK-$(RACK_SDK_VERSION)-lin-x64.zip
+	$(WGET) "https://vcvrack.com/downloads/Rack-SDK-$(RACK_SDK_VERSION)-lin-x64.zip"
+	$(UNZIP) Rack-SDK-$(RACK_SDK_VERSION)-lin-x64.zip
 	mv Rack-SDK Rack-SDK-lin-x64
 	rm Rack-SDK-$(RACK_SDK_VERSION)-lin-x64.zip
 RACK_DIR_LIN_X64 := $(PWD)/$(rack-sdk-lin-x64)
@@ -226,6 +248,16 @@ plugin-build-mac-x64 plugin-build-mac-arm64 plugin-build-win-x64 plugin-build-li
 
 plugin-build-clean:
 	rm -rf $(PLUGIN_BUILD_DIR)
+
+
+# Static Analysis
+
+static-analysis-cppcheck: export PATH := $(LOCAL_DIR)/cppcheck/bin:$(PATH)
+static-analysis-cppcheck: cppcheck
+	cd $(PLUGIN_DIR) && cppcheck src/ -isrc/dep --std=c++11 -j $(shell nproc) --error-exitcode=1
+
+
+plugin-analyze: static-analysis-cppcheck
 
 
 # Docker helpers
@@ -334,6 +366,9 @@ docker-plugin-build-lin-x64:
 	mkdir -p $(PLUGIN_BUILD_DIR)
 	$(DOCKER_RUN) -c "$(MAKE) plugin-build-lin-x64 $(MFLAGS)"
 
+docker-plugin-analyze:
+	$(DOCKER_RUN) -c "$(MAKE) plugin-analyze $(MFLAGS)"
+
 
 .NOTPARALLEL:
-.PHONY: all plugin-build
+.PHONY: all plugin-build plugin-analyze

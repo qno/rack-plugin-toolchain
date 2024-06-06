@@ -1,5 +1,6 @@
 FROM ghcr.io/qno/rack-plugin-toolchain-ctng-windows:x86_64-w64-mingw32 as ctng-windows
 FROM ghcr.io/qno/rack-plugin-toolchain-ctng-linux:x86_64-ubuntu16.04 as ctng-linux
+FROM ghcr.io/qno/rack-plugin-toolchain-cppcheck:2.13.0 as cppcheck
 
 FROM ubuntu:22.04
 
@@ -29,6 +30,7 @@ RUN rm -rf /var/lib/apt/lists/*
 
 COPY --from=ctng-windows --chown=build:build /home/build/rack-plugin-toolchain/local /home/build/rack-plugin-toolchain/local
 COPY --from=ctng-linux --chown=build:build /home/build/rack-plugin-toolchain/local /home/build/rack-plugin-toolchain/local
+COPY --from=cppcheck --chown=build:build /home/build/rack-plugin-toolchain/local /home/build/rack-plugin-toolchain/local
 
 USER build
 RUN make rack-sdk-all

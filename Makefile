@@ -75,8 +75,8 @@ $(toolchain-mac): export PATH := $(LOCAL_DIR)/osxcross/bin:$(PATH)
 $(toolchain-mac):
 	# Obtain osxcross sources.
 	# FIXME Use official osxcross version when workaround from our fork are not required anymore.
-	git clone "https://github.com/cschol/osxcross.git" osxcross
-	cd osxcross && git checkout ae54314c24a959cd90ebb1f3aff3507677d36591
+	git clone "https://github.com/tpoechtrager/osxcross.git" osxcross
+	cd osxcross && git checkout ff8d100f3f026b4ffbe4ce96d8aac4ce06f1278b
 
 	# Build a custom clang compiler using the system's gcc compiler.
 	# This enables us to have custom compiler environment needed for cross-compilation.
@@ -91,7 +91,9 @@ $(toolchain-mac):
 
 	## Build MacOS binutils and build LLVM gold.
 	cd osxcross && BINUTILS_VERSION=$(OSXCROSS_BINUTILS_VERSION) TARGET_DIR="$(LOCAL_DIR)/osxcross" JOBS=$(JOBS) ./build_binutils.sh
-	cd osxcross/build/build_stage && cmake . -DLLVM_BINUTILS_INCDIR=$(PWD)/osxcross/build/binutils-$(OSXCROSS_BINUTILS_VERSION)/include && make install -j $(JOBS)
+
+	# This doesn't seem to work anymore
+	#cd osxcross/build/build_stage && cmake . -DLLVM_BINUTILS_INCDIR=$(PWD)/osxcross/build/binutils-$(OSXCROSS_BINUTILS_VERSION)/include && make install -j $(JOBS)
 
 	# Fix library paths (for Arch Linux and Ubuntu arm64).
 	export PLATFORM_ID=$$($(LOCAL_DIR)/bin/clang -dumpmachine) ; \
